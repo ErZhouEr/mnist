@@ -30,7 +30,7 @@ class NeutralNet(object):
                 self.update_mini_batch(mini_batch, eta)
             if test_data:
                 n_test = len(test_data)
-                print(f'Epoch{i}:{self.evaluate(test_data)},/,{n_test}')
+                print(f'Epoch{i}:{self.evaluate(test_data)} / {n_test}')
             else:
                 print(f'Epoch{i}:Completed')
 
@@ -67,12 +67,12 @@ class NeutralNet(object):
             z = zs[-l]
             delta = np.dot(self.weights[-l + 1].transpose(), delta) * self.sigmod_derivative(z)
             b_tmp[-l] = delta
-            w_tmp[-l] = np.dot(delta, activations[-l - 1])
+            w_tmp[-l] = np.dot(delta, activations[-l - 1].transpose())
         return b_tmp, w_tmp
 
     def evaluate(self, test_data):
         test_results = [(np.argmax(self.feedforward(x)), y) for x, y in test_data]  # 取输出节点最大值的索引为预测值
-        return sum([int(x == y)] for x, y in test_results)
+        return sum([int(x == y) for x, y in test_results])
 
     def cost_derivative(self, y_output, y):
         return y_output - y
