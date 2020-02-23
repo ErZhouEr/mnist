@@ -1,14 +1,57 @@
 import numpy as np
 
 
+class QuadraticCost(object):
+    @staticmethod
+    def ori_func(y, label):
+        return 0.5 * (label - y) * (label - y)
+
+    @staticmethod
+    def d_func(y, label):
+        return y - label
+
+    @staticmethod
+    def delta(z,y,label):
+        return (y-label)*Sigmod_activefunc.sigmod_derivative(z)
+
+
+class CrossEntropyCost(object):
+    @staticmethod
+    def ori_func(y, label):
+        # np.nan_to_num使用0代替数组x中的nan元素，使用有限的数字代替inf元素，这里的np.sum没什么用吧
+        return np.sum(np.nan_to_num(-label * np.log(y) - (1 - label) * np.log(1 - y)))
+
+    @staticmethod
+    def d_func(y, label):
+        return (y-label)/(y*(1-y))
+
+    @staticmethod
+    def delta(z,y,label):
+        return (y-label)
+
+
+class Sigmod_activefunc(object):
+
+    @staticmethod
+    def sigmod(z):
+        return 1 / (1 + np.exp(-z))
+
+
+    @staticmethod
+    def sigmod_derivative(z):
+        a = Sigmod_activefunc.sigmod(z)
+        return a * (1 - a)
+
+
 class NeutralNet(object):
-    def __init__(self, layer_num):
+    def __init__(self, layer_num, cost_func=QuadraticCost):
         self.layer_count = len(layer_num)
         self.sizes = layer_num
         self.bias = [np.random.randn(y, 1) for y in layer_num[1:]]  # 输入层没有bias，np.random.randn(y,1)返回y行1列的正态分布样本
         # self.weights = [[[np.random.randn(layer_num[layer + 1], 1)] for _ in range(layer_num[layer])] for layer in
         #                 range(self.layer_count - 1)]
         self.weights = [np.random.randn(y, x) for x, y in zip(layer_num[:-1], layer_num[1:])]
+        self.cost_func=cost_func
 
     def feedforward(self, a):
         for b, w in zip(self.bias, self.weights):
@@ -58,7 +101,9 @@ class NeutralNet(object):
             activation = self.sigmod(z)
             activations.append(activation)
         # 后向，根据前向记录的结果得到delta
-        delta = self.cost_derivative(activations[-1], y) * self.sigmod_derivative(zs[-1])
+        # delta = self.cost_func.d_func(activations[-1], y) * self.sigmod_derivative(zs[-1])
+        # 出现了0/0的情况，bug，故直接调用损失函数的delta函数了
+        delta=self.cost_func.delta(zs[-1],activations[-1], y)
         b_tmp[-1] = delta
         w_tmp[-1] = np.dot(delta, activations[-2].transpose())  # activations[-2]层的输出，就是输出层的输入x
         # 对np.array各个纬度的转变需要弄清楚
@@ -83,5 +128,3 @@ class NeutralNet(object):
     def sigmod_derivative(self, z):
         a = self.sigmod(z)
         return a * (1 - a)
-
-
