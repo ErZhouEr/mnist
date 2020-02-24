@@ -44,21 +44,31 @@ class Sigmod_activefunc(object):
 
 
 class NeutralNet(object):
-    def __init__(self, layer_num, cost_func=QuadraticCost):
+    def __init__(self, layer_num, cost_func=QuadraticCost,init_func='ori_paraminit'):
         self.layer_count = len(layer_num)
+        self.layer_num=layer_num
         self.sizes = layer_num
-        self.bias = [np.random.randn(y, 1) for y in layer_num[1:]]  # 输入层没有bias，np.random.randn(y,1)返回y行1列的正态分布样本
-        # self.weights = [[[np.random.randn(layer_num[layer + 1], 1)] for _ in range(layer_num[layer])] for layer in
-        #                 range(self.layer_count - 1)]
-        self.weights = [np.random.randn(y, x) for x, y in zip(layer_num[:-1], layer_num[1:])]
         self.cost_func=cost_func
+        if init_func=='ori_paraminit':
+            self.ori_paraminit()
+        elif init_func=='paraminit':
+            self.paraminit()
+
+    def ori_paraminit(self):
+        self.bias = [np.random.randn(y, 1) for y in self.layer_num[1:]]  # 输入层没有bias，np.random.randn(y,1)返回y行1列的正态分布样本
+        self.weights = [np.random.randn(y, x) for x, y in zip(self.layer_num[:-1], self.layer_num[1:])]
+
+    def paraminit(self):
+        self.bias=[np.random.randn(y, 1) for y in self.layer_num[1:]] # 偏置没什么影响
+        self.weights=[np.random.randn(y,x)/np.sqrt(x) for x,y in zip(self.layer_num[:-1],self.layer_num[1:])]
+        # weight变成标准差为1/sqrt(n)
 
     def feedforward(self, a):
         for b, w in zip(self.bias, self.weights):
             a = self.sigmod(np.dot(w, a) + b)  # numpy 的各种运算法则还不是很清楚
         return a
 
-    def train_SGD(self, train_data, epochs, mini_batch_size, eta, test_data=None):
+    def train_SGD(self, train_data, epochs, mini_batch_size, eta, lamd, test_data=None):
         '''
         理解随机梯度下降，从下面代码可以看出，每次用一个大小为k的mini_batch的样本来更新参数，相当于对整个train_data分组后进行循环，
         如果与批量梯度下降的超参数迭代次数epochs相同，其实应该相当于没有效率的优化，但是区别在于同样的epochs，随即梯度下降相当于迭代了
@@ -70,23 +80,23 @@ class NeutralNet(object):
         for i in range(epochs):
             mini_batchs = [train_data[k:k + mini_batch_size] for k in range(0, n_train, mini_batch_size)]
             for mini_batch in mini_batchs:
-                self.update_mini_batch(mini_batch, eta)
+                self.update_mini_batch(mini_batch, eta,lamd,n_train)
             if test_data:
                 n_test = len(test_data)
                 print(f'Epoch{i}:{self.evaluate(test_data)} / {n_test}')
             else:
                 print(f'Epoch{i}:Completed')
 
-    def update_mini_batch(self, mini_batch, eta):
+    def update_mini_batch(self, mini_batch, eta,lamd,n):
         b_tmp = [np.zeros(b.shape) for b in self.bias]
         w_tmp = [np.zeros(w.shape) for w in self.weights]
         for x, y in mini_batch:
             delta_b, delta_w = self.backprop(x, y)
             b_tmp = [nb + dnb for nb, dnb in zip(b_tmp, delta_b)]
             w_tmp = [nw + dnw for nw, dnw in zip(w_tmp, delta_w)]
-        # 随机梯度下降是mini_batch中每个样本梯度的平均，注意理解这个平均
+        # 随机梯度下降是mini_batch中每个样本梯度的平均，注意理解这个平均,lamd*eta*w/n实现了L2正则
         self.bias = [b - eta / len(mini_batch) * nb for b, nb in zip(self.bias, b_tmp)]
-        self.weights = [w - eta / len(mini_batch) * nw for w, nw in zip(self.weights, w_tmp)]
+        self.weights = [w - eta / len(mini_batch) * nw-lamd*eta*w/n for w, nw in zip(self.weights, w_tmp)]
 
     def backprop(self, x, y):
         b_tmp = [np.zeros(b.shape) for b in self.bias]
