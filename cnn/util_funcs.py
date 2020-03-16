@@ -46,11 +46,11 @@ def convolution(input_array, kernel_array, stride, output_array, bias):
 	for w in output_width:
 		for h in output_height:
 			if input_array.ndim == 2:
-				output_array[h, w] = input_array[stride * h:stride * w + kernel_height,
+				output_array[h, w] = input_array[stride * h:stride * h + kernel_height,
 				                     stride * w:stride * w + kernel_width] * kernel_array.sum() + bias  # *乘是按元素乘,np.matmul是矩阵乘, 索引的前面是h，后面是w
 			elif input_array.ndim == 3:
-				output_array[h, w] = input_array[:, stride * h:stride * w + kernel_height,
-				                     stride * w:stride * w + kernel_width] * kernel_array.sum() + bias  # 加上深度后的变化就是矩阵在表示是需要多加一个维度
+				output_array[h, w] = input_array[:, stride * h:stride * h + kernel_height,
+				                     stride * w:stride * w + kernel_width] * kernel_array.sum(axis=0) + bias  # 加上深度后的变化就是矩阵在表示是需要多加一个维度
 
 
 def element_wise_op(array,operator):

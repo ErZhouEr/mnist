@@ -14,6 +14,9 @@ import cnn.util_funcs as util_funcs
 
 
 class ConvLayer(object):
+	'''
+	卷积层
+	'''
 	def __init__(self, input_width, input_height, channel_num, filter_width, filter_height, filter_num,
 	             padding, stride, activator, rate):  # filter 的深度跟输入的channel_num是一样的，所以只定义一个filter_num就行了
 		self.input_width = input_width
@@ -73,8 +76,19 @@ class ConvLayer(object):
 		:param sensitivity_array:本层误差项
 		:param activator:上一层的激活函数，这些本层上层的关系要随时根据链式法则判断
 		'''
-		# 卷积步长不一定为1，对于不为1的，要对原始sensitivity map进行扩展
+		# 1 卷积步长不一定为1，对于不为1的，要对原始sensitivity map进行扩展
 		sensitivity_map=self.expand_sensitivity_map(sensitivity_array)
+		# 2 要对sensitivity_map进行pad，因为上一层边缘的节点的误差传播仅与sensitivity_map的边缘有关，要想进行卷积，就要补pad
+		pad=(self.input_width+self.filter_width-1-sensitivity_map.shape[2])/2
+		# 这个计算原理：补0后的sensitivity_map要能够作为输入得到真正输入array的width
+		# 即解方程：(sen_map_width - filter_width + 2*pad)/stride+1 = input_width
+		padded_map=util_funcs.pad(sensitivity_map,pad)
+		# 3 针对每个filter，进行误差传递
+		delta_array=np.zeros_like(self.input_array)
+		for filter in self.filters:
+			fliped_filter=np.rot90(filter.get_weights(),2)
+			util_funcs.convolution(padded_map,fliped_filter,1,tmp,0)
+
 
 
 
