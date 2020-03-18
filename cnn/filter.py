@@ -10,6 +10,9 @@ import numpy as np
 
 
 class Filter(object):
+	'''
+	卷积核
+	'''
 	def __init__(self, width, height, channel):
 		self.width = width
 		self.height = height
