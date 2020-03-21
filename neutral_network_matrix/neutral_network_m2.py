@@ -73,8 +73,9 @@ class NeutralNet(object):
                   evaluation_data=None, monitor=False):
         '''
         理解随机梯度下降，从下面代码可以看出，每次用一个大小为k的mini_batch的样本来更新参数，相当于对整个train_data分组后进行循环，
-        如果与批量梯度下降的超参数迭代次数epochs相同，其实应该相当于没有效率的优化，但是区别在于同样的epochs，随即梯度下降相当于迭代了
-        epochs＊（n_train/k）次，实际上不需要这么多，一半其epochs远小与批量梯度下降，所以效率得到了大幅优化
+        如果与批量梯度下降的超参数迭代次数epochs相同，其实应该相当于没有效率的优化，但是区别在于同样的epochs，随机梯度下降相当于迭代了
+        epochs*（n_train/k）次，即SGD的epochs其实是epoch*（n_train/k）,n_train/k一般很大，所以实际上不需要这么多，一般其epochs
+        远小于批量梯度下降，所以效率得到了大幅优化
         '''
         # if test_data:
         #     n_test = len(test_data)
